@@ -378,53 +378,78 @@ export default function App() {
   const main = useRef<HTMLElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
   const [consultOpen, setConsultOpen] = useState(false);
+
   useEffect(() => {
     const lenis = new Lenis({
-      lerp: 0.11,
+      duration: 1.15,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
-      syncTouch: false,
-      wheelMultiplier: 0.9,
-      anchors: true,
-      respectReducedMotion: true,
+      wheelMultiplier: 1.0,
+      touchMultiplier: 1.2,
     });
     lenisRef.current = lenis;
+
     lenis.on('scroll', ScrollTrigger.update);
     const update = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(update);
     gsap.ticker.lagSmoothing(0);
-    ScrollTrigger.refresh();
+
+    const onLoad = () => ScrollTrigger.refresh();
+    window.addEventListener('load', onLoad);
+    const refreshTimer = setTimeout(() => ScrollTrigger.refresh(), 350);
+
     return () => {
+      window.removeEventListener('load', onLoad);
+      clearTimeout(refreshTimer);
       gsap.ticker.remove(update);
       lenis.off('scroll', ScrollTrigger.update);
       lenis.destroy();
       lenisRef.current = null;
     };
   }, []);
+
   useEffect(() => {
     if (consultOpen) lenisRef.current?.stop();
     else lenisRef.current?.start();
   }, [consultOpen]);
+
   const scrollToSection = (id: string) => {
     const target = document.getElementById(id);
     if (!target) return;
     if (lenisRef.current) {
-      lenisRef.current.scrollTo(target);
+      lenisRef.current.scrollTo(target, { duration: 1.2 });
     } else {
-      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
   useGSAP(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     gsap.fromTo('.hero-copy .eyebrow, .hero-copy h1, .hero-copy p, .hero-buttons',
-      { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .95, stagger: .13, delay: .2, ease: 'power3.out' });
-    gsap.fromTo('.hero-visual', { scale: 1.055 }, { scale: 1, duration: 2, ease: 'power2.out' });
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 0.95, stagger: 0.13, delay: 0.15, ease: 'power3.out' }
+    );
+    gsap.fromTo('.hero-visual',
+      { scale: 1.055 },
+      { scale: 1, duration: 2, ease: 'power2.out' }
+    );
     gsap.utils.toArray<HTMLElement>('.reveal').forEach((el) => {
-      gsap.fromTo(el,{ y: 35, opacity: 0 }, {
-        y: 0, opacity: 1, duration: .88, ease: 'power2.out',
-        scrollTrigger: { trigger: el, start: 'top 88%', once: true },
-      });
+      gsap.fromTo(el,
+        { y: 35, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.88,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 85%',
+            once: true,
+          },
+        }
+      );
     });
+
+    ScrollTrigger.refresh();
   }, { scope: main });
   return <main ref={main}>
     <Header onConsult={() => setConsultOpen(true)} onNavigate={scrollToSection} />
