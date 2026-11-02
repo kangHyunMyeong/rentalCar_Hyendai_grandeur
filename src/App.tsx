@@ -12,7 +12,7 @@ import { submitLead } from './services/leadSubmissionService';
 import { DesignGallery } from './components/DesignGallery';
 import {
   ArrowDown, ArrowLeftRight, ArrowRight, ArrowUpRight, Check, ChevronDown,
-  Clock3, Info, Menu, ShieldCheck, WalletCards, X,
+  Clock3, Info, ShieldCheck, WalletCards, X,
 } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -36,44 +36,33 @@ function ChoicePills<T extends string | number>({
 
 function Header({ onConsult, onNavigate }: { onConsult: () => void; onNavigate: (id: string) => void }) {
   const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 45);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-  const navigate = (id: string) => {
-    setOpen(false);
-    onNavigate(id);
-  };
   const links = [
     ['intro', '그랜저 소개'], ['estimate', '견적 알아보기'],
     ['benefits', '장기렌트 장점'], ['faq', 'FAQ'],
   ];
-  return <>
-    <header className={'site-header ' + (scrolled || open ? 'is-scrolled' : '')}>
-      <div className="header-inner shell">
-        <button className="logo" onClick={() => navigate('top')} aria-label="페이지 상단으로">
-          <span className="logo-mark">F<span>.</span></span>
-          <span className="logo-text"><b>핏카컴퍼니</b><small>현대 그랜저 장기렌트</small></span>
-        </button>
-        <nav className="desktop-nav" aria-label="주요 메뉴">
-          {links.map(([id, label]) => <button key={id} onClick={() => navigate(id)}>{label}</button>)}
-        </nav>
-        <div className="header-actions">
-          <button className="header-cta" onClick={onConsult}>무료 견적 상담 <ArrowUpRight size={16} /></button>
-          <button className="menu-toggle" onClick={() => setOpen(!open)} aria-label={open ? '메뉴 닫기' : '메뉴 열기'} aria-expanded={open}>
-            {open ? <X size={24}/> : <Menu size={24}/>}
-          </button>
-        </div>
+  return <header className={'site-header ' + (scrolled ? 'is-scrolled' : '')}>
+    <div className="header-inner shell">
+      <button className="logo" onClick={() => onNavigate('top')} aria-label="페이지 상단으로">
+        <span className="logo-mark">F<span>.</span></span>
+        <span className="logo-text"><b>핏카컴퍼니</b><small>현대 그랜저 장기렌트</small></span>
+      </button>
+      {/* 시각적으로 숨기되 크롤러가 섹션 앵커를 수집할 수 있도록 유지 */}
+      <nav className="seo-nav" aria-label="주요 메뉴">
+        {links.map(([id, label]) =>
+          <a key={id} href={`#${id}`} onClick={(e) => { e.preventDefault(); onNavigate(id); }}>{label}</a>
+        )}
+      </nav>
+      <div className="header-actions">
+        <button className="header-cta" onClick={onConsult}>무료 견적 상담 <ArrowUpRight size={16} /></button>
       </div>
-    </header>
-    {open && <nav className="mobile-menu" aria-label="모바일 메뉴">
-      {links.map(([id,label]) => <button key={id} onClick={() => navigate(id)}>{label}<ArrowUpRight size={16}/></button>)}
-      <button className="mobile-menu-primary" onClick={() => { setOpen(false); onConsult(); }}>무료 견적 상담하기 <ArrowRight size={16}/></button>
-    </nav>}
-  </>;
+    </div>
+  </header>;
 }
 
 function Hero({ onConsult }: { onConsult: () => void }) {
