@@ -3,6 +3,7 @@ import type { FormEvent, KeyboardEvent, ReactNode } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
+import Lenis from 'lenis';
 import type { Choice, Color, Engine, Trim } from './features/rental/types';
 import { useChoice } from './features/rental/store';
 import { simulateQuote } from './features/rental/pricing';
@@ -33,7 +34,7 @@ function ChoicePills<T extends string | number>({
   </div>;
 }
 
-function Header({ onConsult }: { onConsult: () => void }) {
+function Header({ onConsult, onNavigate }: { onConsult: () => void; onNavigate: (id: string) => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -44,16 +45,16 @@ function Header({ onConsult }: { onConsult: () => void }) {
   }, []);
   const navigate = (id: string) => {
     setOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    onNavigate(id);
   };
   const links = [
-    ['intro', '그랜저 소개'], ['design', '디자인'], ['estimate', '컬러·견적'],
-    ['benefits', '장기렌트 혜택'], ['faq', 'FAQ'],
+    ['intro', '그랜저 소개'], ['estimate', '견적 알아보기'],
+    ['benefits', '장기렌트 장점'], ['faq', 'FAQ'],
   ];
   return <>
     <header className={'site-header ' + (scrolled || open ? 'is-scrolled' : '')}>
       <div className="header-inner shell">
-        <button className="logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="페이지 상단으로">
+        <button className="logo" onClick={() => navigate('top')} aria-label="페이지 상단으로">
           <span className="logo-mark">F<span>.</span></span>
           <span className="logo-text"><b>핏카컴퍼니</b><small>현대 그랜저 장기렌트</small></span>
         </button>
@@ -351,7 +352,7 @@ function ConsultationDialog({ open, onClose }: { open: boolean; onClose: () => v
   return <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
     <div role="dialog" aria-modal="true" aria-labelledby="consult-title" className="consult-dialog" ref={dialogRef} onKeyDown={onKeyDown}>
       <div className="modal-header"><div><span className="mini-label">FITCAR COMPANY / CONSULTATION</span><h2 id="consult-title">그랜저 무료 견적 상담</h2><p>선택하신 조건을 확인하고 문의 내용을 남겨주세요.</p></div><button className="modal-close" aria-label="팝업 닫기" onClick={onClose}><X size={22}/></button></div>
-      <div className="modal-scroll">
+      <div className="modal-scroll" data-lenis-prevent>
         <div className="modal-quote">
           <div className="modal-quote-title"><b>THE NEW GRANDEUR</b><span>선택 조건 자동 반영 <Check size={13}/></span></div>
           <p>{engineNames[choice.engine]} · {trimNames[choice.trim]} · {vehiclePhotos[choice.color].name}</p>
@@ -375,7 +376,44 @@ function ConsultationDialog({ open, onClose }: { open: boolean; onClose: () => v
 
 export default function App() {
   const main = useRef<HTMLElement>(null);
+  const lenisRef = useRef<Lenis | null>(null);
   const [consultOpen, setConsultOpen] = useState(false);
+  useEffect(() => {
+    const lenis = new Lenis({
+      lerp: 0.11,
+      smoothWheel: true,
+      syncTouch: false,
+      wheelMultiplier: 0.9,
+      anchors: true,
+      respectReducedMotion: true,
+    });
+    lenisRef.current = lenis;
+    lenis.on('scroll', ScrollTrigger.update);
+    const update = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(update);
+    gsap.ticker.lagSmoothing(0);
+    ScrollTrigger.refresh();
+    return () => {
+      gsap.ticker.remove(update);
+      lenis.off('scroll', ScrollTrigger.update);
+      lenis.destroy();
+      lenisRef.current = null;
+    };
+  }, []);
+  useEffect(() => {
+    if (consultOpen) lenisRef.current?.stop();
+    else lenisRef.current?.start();
+  }, [consultOpen]);
+  const scrollToSection = (id: string) => {
+    const target = document.getElementById(id);
+    if (!target) return;
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(target);
+    } else {
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+  };
   useGSAP(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     gsap.fromTo('.hero-copy .eyebrow, .hero-copy h1, .hero-copy p, .hero-buttons',
@@ -389,7 +427,7 @@ export default function App() {
     });
   }, { scope: main });
   return <main ref={main}>
-    <Header onConsult={() => setConsultOpen(true)} />
+    <Header onConsult={() => setConsultOpen(true)} onNavigate={scrollToSection} />
     <Hero onConsult={() => setConsultOpen(true)} />
     <IntroDesign />
     <ColorEstimate onConsult={() => setConsultOpen(true)} />

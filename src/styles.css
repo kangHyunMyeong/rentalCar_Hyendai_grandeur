@@ -1,6 +1,6 @@
 :root{font-family:'Noto Sans KR',system-ui,sans-serif;color:#f4f3f0;background:#0b0d10;--color-ink:#0b0d10;--color-charcoal:#15181d;--color-graphite:#20242a;--color-gold:#c9b594;--color-gold-hover:#ddc9a8;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:auto}
 body{margin:0;min-width:320px}
 button,input,textarea{font:inherit}
 button{cursor:pointer}
